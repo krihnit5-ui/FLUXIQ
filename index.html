@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#050a10">
+  <meta name="description" content="FluxIQ — live India flood intelligence with a 3D command globe, NASA satellite layers, live model telemetry and transparent derived pressure signals.">
+  <title>FluxIQ — 3D Flood Intelligence Console</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://unpkg.com">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="bg-noise"></div>
+  <div class="app-shell">
+    <header class="topbar glass">
+      <a class="brand-wrap" href="#top" aria-label="FluxIQ home">
+        <div class="brand-orb" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="brand-copy"><div class="brand">FluxIQ<span>3D</span></div><div class="eyebrow">HYDRO-MET INTELLIGENCE · SIH 2026</div></div>
+      </a>
+      <div class="top-actions">
+        <div class="live-state"><span class="live-pulse" id="systemLed"></span><span id="systemStatus">BOOTING LIVE FEEDS</span></div>
+        <button class="toolbar-btn" id="refreshBtn" type="button">Sync live data</button>
+        <button class="toolbar-btn primary" id="tacticalBtn" type="button">Open tactical map</button>
+      </div>
+    </header>
+
+    <main class="content" id="top">
+      <section class="hero3d glass">
+        <div class="hero-copy">
+          <div class="kicker"><span></span> 3D NATIONAL FLOOD COMMAND</div>
+          <h1>Read the pressure.<br><em>Move before the flood.</em></h1>
+          <p>FluxIQ turns live weather-model telemetry and NASA satellite products into a single operational view. Drag the globe. Select a node. Then drill into the state with a full tactical map.</p>
+          <div class="hero-actions">
+            <button class="cta" id="focusSelectedBtn" type="button">Focus <span id="ctaState">Delhi</span></button>
+            <button class="cta ghost" id="overviewBtn" type="button">India overview</button>
+          </div>
+          <div class="trust-row">
+            <span class="trust-chip"><b>LIVE</b> Open-Meteo model</span>
+            <span class="trust-chip"><b>NASA</b> GPM IMERG</span>
+            <span class="trust-chip"><b>NASA</b> MODIS NRT</span>
+            <span class="trust-chip"><b>36</b> states + UT nodes</span>
+          </div>
+        </div>
+
+        <div class="globe-stage" id="globeStage">
+          <canvas id="globeCanvas" aria-label="Interactive 3D India flood intelligence globe"></canvas>
+          <div class="globe-ui top-left"><span class="tiny-label">3D DIGITAL TWIN</span><strong>INDIA · LIVE</strong></div>
+          <div class="globe-ui top-right"><span class="tiny-label">LIVE RISK FIELD</span><strong>DERIVED PRESSURE</strong></div>
+          <div class="globe-ui bottom-left"><span class="legend-dot critical"></span>Critical <span class="legend-dot high"></span>High <span class="legend-dot moderate"></span>Moderate <span class="legend-dot low"></span>Low</div>
+          <div class="globe-ui bottom-right"><span id="globeHint">Drag to rotate · scroll to zoom · click a node</span></div>
+          <div class="globe-centerline"></div>
+          <div class="globe-controls" aria-label="3D globe controls"><button id="globeReset" type="button">RESET</button><button id="globeAuto" type="button" class="active">AUTO ROTATE</button></div>
+          <div class="globe-selected-card" id="globeSelectedCard"><span class="eyebrow">SELECTED NODE</span><strong id="globeSelectedName">Delhi</strong><small id="globeSelectedMeta">Waiting for live telemetry</small></div>
+        </div>
+
+        <div class="hero-metrics">
+          <div class="metric"><span>LIVE COVERAGE</span><strong id="coverageStat">0/36</strong><small>nodes returning live telemetry</small></div>
+          <div class="metric"><span>WATCH ZONES</span><strong id="watchCount">0</strong><small>derived pressure ≥ high</small></div>
+          <div class="metric"><span>LAST SYNC</span><strong id="syncTime">—</strong><small>latest model response</small></div>
+          <div class="metric"><span>NATIONAL PEAK</span><strong id="peakPressure">—</strong><small id="peakPressureSub">awaiting live telemetry</small></div>
+        </div>
+      </section>
+
+      <section class="commandbar glass" id="commandBar">
+        <div class="search-wrap"><span class="search-glyph">⌕</span><input id="search" type="search" autocomplete="off" placeholder="Search state, union territory or capital…" aria-label="Search India response nodes"></div>
+        <div class="filters" role="group" aria-label="Risk filters">
+          <button class="filter active" data-risk="ALL" type="button">All</button>
+          <button class="filter" data-risk="CRITICAL" type="button">Critical</button>
+          <button class="filter" data-risk="HIGH" type="button">High</button>
+          <button class="filter" data-risk="MODERATE" type="button">Moderate</button>
+          <button class="filter" data-risk="LOW" type="button">Low</button>
+        </div>
+        <div class="command-health"><span class="data-pill loading" id="liveStatus">WAITING FOR LIVE FEED…</span><span class="index-label">INDEX <b>EXPLAINABLE</b></span></div>
+      </section>
+
+      <section class="overview-grid">
+        <aside class="panel glass network-panel">
+          <div class="panel-head"><div><div class="eyebrow">01 · RESPONSE NETWORK</div><h2>36 live nodes</h2></div><span class="count-badge" id="filteredCount" aria-live="polite" aria-atomic="true">36</span></div>
+          <div class="panel-subline"><span>28 states · 8 UTs</span><span>sorted by pressure</span></div>
+          <div class="network-scroll" id="networkList"></div>
+          <div class="panel-foot"><span>LIVE MODEL</span><span>CAPITAL NODE</span><span>CLICK TO FOCUS</span></div>
+        </aside>
+
+        <section class="panel glass insight-panel">
+          <div class="insight-top"><div><div class="eyebrow">02 · LIVE SITUATIONAL PICTURE</div><h2 id="selectedTitle">India overview</h2></div><div class="map-mode-chip" id="mapModeChip">NATIONAL</div></div>
+          <div class="insight-grid">
+            <div class="rank-card">
+              <div class="eyebrow">PRESSURE LEADERS</div>
+              <div id="watchlistRows" class="watchlist"></div>
+            </div>
+            <div class="source-card">
+              <div class="eyebrow">SOURCE STACK</div>
+              <div class="source-stack">
+                <div><span class="source-dot nasa"></span><div><strong>NASA GPM IMERG</strong><small>Satellite precipitation raster</small></div></div>
+                <div><span class="source-dot nasa"></span><div><strong>NASA MODIS NRT</strong><small>Near-real-time visual context</small></div></div>
+                <div><span class="source-dot model"></span><div><strong>OPEN-METEO</strong><small>Live model + soil telemetry</small></div></div>
+                <div><span class="source-dot derived"></span><div><strong>FLUXIQ INDEX</strong><small>Transparent research heuristic</small></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="panel glass intel-panel">
+          <div class="panel-head"><div><div class="eyebrow">03 · NODE INTELLIGENCE</div><h2 id="intelName">New Delhi</h2><div class="muted-mini" id="intelKind">UT · North network node</div></div><span class="risk-chip low" id="intelRisk">WAITING</span></div>
+          <div class="score-line"><div class="score-orb" id="scoreOrb"><span id="intelScore">—</span><small>/100</small></div><div><div class="eyebrow">DERIVED FLOOD PRESSURE</div><p id="intelSummary">Waiting for live telemetry…</p></div></div>
+          <div class="signal-grid">
+            <div class="signal"><span>NOW</span><strong id="rainNow">—</strong><small>precip.</small></div>
+            <div class="signal"><span>NEXT 3H</span><strong id="rain3h">—</strong><small>forecast total</small></div>
+            <div class="signal"><span>NEXT 24H</span><strong id="rain24h">—</strong><small>forecast total</small></div>
+            <div class="signal"><span>SOIL</span><strong id="soil">—</strong><small>0–10 cm</small></div>
+            <div class="signal"><span>RAIN PROB</span><strong id="prob">—</strong><small>next 6h</small></div>
+            <div class="signal"><span>WIND</span><strong id="wind">—</strong><small>km/h</small></div>
+          </div>
+          <div class="confidence-card"><div class="confidence-top"><span>LIVE FIELD COMPLETENESS</span><strong id="confidenceValue">Waiting</strong></div><div class="bar"><span id="confidenceBar"></span></div><div class="confidence-foot"><span>fields returned by source</span><span>not model accuracy</span></div></div>
+          <div class="action-box" id="actionBox">Waiting for live signals.</div>
+          <div class="panel-actions"><button class="primary-btn" id="briefBtn" type="button">Generate live briefing</button><button class="ghost-btn" id="scenarioBtn" type="button">Run +40 mm tabletop</button></div>
+        </aside>
+      </section>
+
+      <section class="tactical-section" id="tacticalSection">
+        <div class="section-head"><div><div class="eyebrow">04 · TACTICAL MAP</div><h2 id="tacticalTitle">State-level geospatial drill-down</h2><p>Click a state or node to switch from the national 3D picture to a focused operational map with live local probe cells and NASA overlays. Local cells are capital-centered model probes, not a full-state observation network.</p></div><div class="section-head-actions"><button class="toolbar-btn twin-launch" id="openTwinBtn" type="button">Open 3D city twin</button><button class="toolbar-btn" id="backIndia" hidden type="button">← India overview</button></div></div>
+        <div class="tactical-card glass">
+          <div class="tactical-head"><div><span class="map-mode-chip" id="tacticalMode">NATIONAL LIVE VIEW</span><strong id="focusTitle">INDIA · NATIONAL</strong><span id="focusSubtitle">Choose any state or UT to open a live local focus grid.</span></div><div class="layer-actions"><button class="layer-btn active" id="toggleImerg" type="button" aria-pressed="true">NASA IMERG</button><button class="layer-btn" id="toggleTerra" type="button">MODIS Terra</button><button class="layer-btn" id="toggleAqua" type="button">MODIS Aqua</button></div></div>
+          <div class="tactical-map-wrap"><div class="state-focus-banner" id="stateFocusBanner"><span class="focus-led"></span><div><strong id="stateFocusText">STATE FOCUS</strong><span id="stateFocusSubtext">Live local probe grid</span></div></div><div id="map" class="map"></div><div class="map-scrim"></div><div class="map-badges"><span><i></i> OSM BASEMAP</span><span><i></i> GIBS LAYERS</span><span><i></i> STATE BOUNDARY REF</span><span><i></i> LIVE LOCAL PROBES</span></div><div class="map-status" id="mapStatus"><span class="source-status live" id="satStatus">NASA GIBS layers ready</span></div></div>
+        </div>
+      </section>
+
+      <section class="city-twin-section" id="cityTwinSection">
+        <div class="section-head">
+          <div><div class="eyebrow">05 · 3D CITY DIGITAL TWIN</div><h2 id="twinTitle">Delhi · flood propagation lab</h2><p>Interactive 3D simulation view for the selected node. Terrain, drainage paths and water depth are visualised as a prototype layer; this is not a calibrated hydraulic solver.</p></div>
+          <div class="twin-status"><span class="live-dot"></span><span id="twinStatus">PROTOTYPE SIMULATION</span></div>
+        </div>
+        <div class="city-twin-card glass">
+          <div class="twin-viewport" id="twinViewport">
+            <canvas id="cityTwinCanvas" aria-label="Interactive 3D city flood digital twin"></canvas>
+            <div class="twin-hud twin-hud-left"><span class="tiny-label">DIGITAL TWIN</span><strong id="twinNodeName">DELHI</strong><small id="twinNodeMeta">Live pressure field</small></div>
+            <div class="twin-hud twin-hud-right"><span class="tiny-label">WATER DEPTH</span><strong id="twinDepth">0.00 m</strong><small>synthetic visual layer</small></div>
+            <div class="twin-legend"><span><i class="road"></i>Roads</span><span><i class="drain"></i>Drainage</span><span><i class="water"></i>Water</span><span><i class="hot"></i>Hotspot</span></div>
+            <div class="twin-controls"><button id="twinReset" type="button">RESET VIEW</button><button id="twinRotate" type="button" class="active">AUTO ROTATE</button></div>
+          </div>
+          <div class="twin-control-panel">
+            <div class="twin-control-head"><div><span class="eyebrow">FLOOD PROPAGATION</span><strong>Time-step explorer</strong></div><span id="twinTimeLabel">NOW</span></div>
+            <input id="twinTime" type="range" min="0" max="6" step="1" value="0" aria-label="Flood propagation time step">
+            <div class="twin-scale"><span>NOW</span><span>+30M</span><span>+1H</span><span>+2H</span><span>+3H</span><span>+4H</span><span>+6H</span></div>
+            <div class="twin-stats"><div><span>PRESSURE</span><strong id="twinPressure">—</strong></div><div><span>RUNOFF LOAD</span><strong id="twinRunoff">—</strong></div><div><span>DRAIN EXCESS</span><strong id="twinDrainExcess">—</strong></div><div><span>HOTSPOTS</span><strong id="twinHotspots">—</strong></div></div>
+            <div class="pilot-drain-card" id="pilotDrainCard">
+              <div class="pilot-drain-head"><div><span class="eyebrow">DELHI PILOT · DRAINAGE REFERENCE</span><strong>Published I&FC design capacities + GIS adapter</strong></div><span class="pilot-tag">DELHI PILOT</span></div>
+              <div class="pilot-drain-grid" id="pilotDrainGrid"><div class="pilot-loading">Loading published drainage references…</div></div>
+              <div class="twin-note">Published attributes are from Delhi drainage material. Geometry is only rendered when an authenticated GeoJSON source is configured through <code>DELHI_DRAINAGE_GEOJSON_URL</code>; otherwise FluxIQ stays in reference-only mode.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="focus-grid-section">
+        <div class="focus-list panel glass">
+          <div class="panel-head compact"><div><div class="eyebrow">05 · FOCUS GRID</div><h2>Priority rainfall cells</h2></div><span class="count-badge" id="hotspotCount">—</span></div>
+          <div id="hotspotRows" class="hotspot-list"><div class="empty-state">Select a state or UT to load live local probe cells.</div></div>
+        </div>
+        <div class="provenance panel glass">
+          <div class="panel-head compact"><div><div class="eyebrow">06 · DATA FUSION</div><h2>Observation → action</h2></div><span class="trust-tag">PROVENANCE VISIBLE</span></div>
+          <div class="fusion-flow"><div><b>01</b><strong>NASA GPM</strong><span>IMERG precipitation</span></div><i>→</i><div><b>02</b><strong>NASA MODIS</strong><span>NRT imagery context</span></div><i>→</i><div><b>03</b><strong>LIVE MODEL</strong><span>weather + soil</span></div><i>→</i><div class="highlight"><b>04</b><strong>FLUXIQ</strong><span>explainable pressure</span></div></div>
+          <div class="provenance-note">Satellite products remain satellite products. Model telemetry remains model output. FluxIQ's pressure signal is a derived research heuristic and should be cross-checked against official warnings, river observations and ground truth.</div>
+        </div>
+      </section>
+
+      <footer class="footer panel glass">
+        <div><div class="eyebrow">SOURCE REGISTER</div><p>NASA GPM IMERG · NASA GIBS / MODIS · Open-Meteo · IMD · CWC Flood Forecast</p></div>
+        <div class="footer-links"><a href="https://gpm.nasa.gov/data/imerg" target="_blank" rel="noreferrer">NASA IMERG ↗</a><a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noreferrer">NASA GIBS ↗</a><a href="https://open-meteo.com/en/docs" target="_blank" rel="noreferrer">Open-Meteo ↗</a><a href="https://mausam.imd.gov.in/" target="_blank" rel="noreferrer">IMD ↗</a><a href="https://ffs.india-water.gov.in/" target="_blank" rel="noreferrer">CWC ↗</a></div>
+      </footer>
+    </main>
+  </div>
+
+  <dialog id="briefDialog" class="brief-dialog"><div class="brief-shell glass"><div class="brief-top"><span class="eyebrow">OPERATIONS BRIEF</span><button class="close-btn" id="closeBrief" type="button">×</button></div><h2 id="briefTitle">Live flood briefing</h2><p id="briefText"></p><div class="scenario-control" id="scenarioControl" hidden><div class="scenario-head"><div><span class="eyebrow">TABLETOP STRESS</span><strong>Added precipitation</strong></div><span id="scenarioMmValue">+0 mm</span></div><input id="scenarioMm" type="range" min="0" max="100" step="5" value="0" aria-label="Synthetic added precipitation in millimetres"><div class="scenario-scale"><span>0</span><span>25</span><span>50</span><span>75</span><span>100 mm</span></div><div class="scenario-readout"><div><span>LIVE BASELINE</span><strong id="scenarioCurrent">—</strong></div><div><span>PROJECTED DRILL</span><strong id="scenarioScore">—</strong></div><div><span>PROJECTED LEVEL</span><strong id="scenarioLevel" class="scenario-level low">NO DATA</strong></div></div><small class="scenario-note">Synthetic drill only. NASA and live-model observations are unchanged.</small></div><div class="brief-meta"><span>WINDOW <b>0–24 H</b></span><span>LIVE FIELDS <b id="briefConfidence">—</b></span><span>NODE <b id="briefNode">—</b></span></div></div></dialog>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <script>window.FLUXIQ_API_URL = window.FLUXIQ_API_URL || "";</script>
+  <script src="./app.js"></script>
+</body>
+</html>
